@@ -6,20 +6,32 @@ from torch.utils.data import Dataset
 from torchvision import transforms
 
 class Unsplash(Dataset):
-    def __init__(self, path, scale, patch_size, mean, std):
+    def __init__(self, path, scale, patch_size, mean, std, train=True):
         self.path = path
-        self.patch_size = patch_size
         self.scale = scale
+        self.patch_size = patch_size
+
+        if train:
+            self.path += 'train_set/'
+        else:
+            self.path += 'test_set/'
         
-        labels = []
-        for file in os.listdir(self.path):
+        lr = []
+        for file in os.listdir(self.path + 'lr_x' + str(self.scale) + '/'):
             if not file.lower().endswith(('.jpg', '.jpeg', '.png', '.tif', '.tiff')):
                 continue
-            labels.append(file)
-        labels = sorted(labels, key=lambda x: int(x.split(".")[0]))
+            lr.append(file)
+        lr = sorted(lr, key=lambda x: int(x.split(".")[0]))
 
-        self.images = labels
-        self.labels = labels
+        hr = []
+        for file in os.listdir(self.path + 'hr/'):
+            if not file.lower().endswith(('.jpg', '.jpeg', '.png', '.tif', '.tiff')):
+                continue
+            hr.append(file)
+        hr = sorted(hr, key=lambda x: int(x.split(".")[0]))
+
+        self.lr = lr
+        self.hr = hr
         
         self.transform = transforms.Compose([
             transforms.RandomHorizontalFlip(),
@@ -30,43 +42,27 @@ class Unsplash(Dataset):
         ])
 
     def __len__(self):
-        return len(self.labels)
+        return len(self.hr)
 
     def __getitem__(self, idx):
-        # Note: The Unsplash dataset is differet. Its downsampled
-        # low res images has the same dimension as the high res
-        # images. This is possible since the dataset author may have 
-        # used a downsampling method that preserves the image size while 
-        # reducing the resolution (ex: nearest-neighbor interpolation).
-        
-        # As a consequence:
-        # We'll downsampled the hr image.
-        
         if torch.is_tensor(idx):
             idx = idx.to_list()
 
-        label_path = os.path.join(
-            self.path, self.labels[idx]
+        hr_path = os.path.join(
+            self.path + 'hr/', self.hr[idx]
+        )
+        lr_path = os.path.join(
+            self.path + 'lr_x' + str(self.scale) + '/', self.lr[idx]
         )
 
-        hr_img = Image.open(label_path).convert("RGB")
-        lr_img = hr_img
-        
-        # Resize image to make sure they're all 1200 x 800 (as original)
-        lr_img = lr_img.resize((1200, 800))
-        hr_img = hr_img.resize((1200, 800))
-        
-        # Compute the new size of the downscaled image and
-        # downscale the image using bilinear interpolation.
-        new_size = (lr_img.width//self.scale, lr_img.height//self.scale)
-        lr_img = lr_img.resize(new_size, resample=Image.BILINEAR)
+        hr_img = Image.open(hr_path).convert("RGB")
+        lr_img = Image.open(lr_path).convert("RGB")
         
         # Get random patch location of size self.patch_size.
         lr_patch_x = np.random.randint(0, lr_img.size[0] - self.patch_size)
         lr_patch_y = np.random.randint(0, lr_img.size[1] - self.patch_size)
         hr_patch_x = lr_patch_x * self.scale
         hr_patch_y = lr_patch_y * self.scale
-        
         
         # Get the patch from both lr and hr image.
         lr_patch = lr_img.crop(

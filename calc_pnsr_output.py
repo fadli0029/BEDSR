@@ -1,5 +1,8 @@
 from __future__ import print_function
 
+from PIL import Image
+from os import listdir
+from torchvision import transforms
 import argparse
 import torch
 import numpy as np
@@ -9,16 +12,25 @@ from dataset import *
 
 # Training settings
 parser = argparse.ArgumentParser(description='PyTorch Super Res Example')
-parser.add_argument('--input_image', type=str, default='datasets/test/test.png', help='input image to use')
-parser.add_argument('--input_LR_path', type=str, default='datasets/test/DIV2K/LR/', help='input path to use')
-parser.add_argument('--input_HR_path', type=str, default='datasets/test/DIV2K/HR/', help='input path to use')
-parser.add_argument('--model', type=str, default='checkpoints/m.pth', help='model file to use')
+parser.add_argument('--input_image', type=str, default='dataset/test_set/lr_x2/1188.jpg', help='input image to use')
+parser.add_argument('--input_LR_path', type=str, default='dataset/test_set/lr_x2/', help='input path to use')
+parser.add_argument('--input_HR_path', type=str, default='dataset/test_set/hr/', help='input path to use')
+parser.add_argument('--model', type=str, default='checkpoints/model_epoch_150.pth', help='model file to use')
 parser.add_argument('--output_path', default='results/', type=str, help='where to save the output image')
 parser.add_argument('--cuda', default=True, action='store_true', help='use cuda')
 opt = parser.parse_args()
 
 print(opt)
 
+
+def is_image_file(filename):
+    return any(filename.endswith(extension) for extension in [".png", ".jpg", ".jpeg", ".bmp"])
+
+
+def load_img(filepath):
+    img = Image.open(filepath).convert('YCbCr')
+    y, _, _ = img.split()
+    return y
 
 def calc_psnr(img1, img2):
     return 10. * torch.log10(1. / torch.mean((img1 - img2) ** 2))
@@ -49,6 +61,7 @@ for i in listdir(path):
             img_num = img_name[0]
 
             img_original = Image.open('{}{}'.format(path_HR, i))
+            img_original = img_original.resize((1200, 800))
             img_original_ybr = img_original.convert('YCbCr')
             img_original_y, _, _ = img_original_ybr.split()
 
@@ -89,8 +102,8 @@ for i in listdir(path):
             psnr_avg += psnr_val
             print(psnr_val)
 
-            im_h_pil.save('{}output/{}.png'.format(opt.output_path, img_num))
-            img_original.save('{}gt/{}.png'.format(opt.output_path, img_num))
+            im_h_pil.save('{}predicted_images/{}.png'.format(opt.output_path, img_num))
+            img_original.save('{}original_images/{}.png'.format(opt.output_path, img_num))
             # print('output image saved to ', opt.output_path)
 psnr_avg = psnr_avg / image_nums
 print('psnr_avg', psnr_avg)

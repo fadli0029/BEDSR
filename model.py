@@ -4,7 +4,6 @@ import math
 
 channels = 64
 
-
 class MeanShift(nn.Conv2d):
     def __init__(self, rgb_mean, sign):
         super(MeanShift, self).__init__(3, 3, kernel_size=1)
@@ -36,8 +35,10 @@ class _Residual_Block(nn.Module):
 
 
 class Net(nn.Module):
-    def __init__(self):
+    def __init__(self, scale=2):
         super(Net, self).__init__()
+
+        self.scale = scale
 
         rgb_mean = (0.4488, 0.4371, 0.4040)
         self.sub_mean = MeanShift(rgb_mean, -1)
@@ -50,11 +51,25 @@ class Net(nn.Module):
         self.conv_mid = nn.Conv2d(in_channels=channels, out_channels=channels, kernel_size=3, stride=1, padding=1,
                                   bias=False)
 
+        self.upscale2x = nn.Sequential(
+            nn.Conv2d(in_channels=channels, out_channels=channels * 4, kernel_size=3, stride=1, padding=1, bias=False),
+            nn.PixelShuffle(2)
+        )
+
         self.upscale4x = nn.Sequential(
             nn.Conv2d(in_channels=channels, out_channels=channels * 4, kernel_size=3, stride=1, padding=1, bias=False),
             nn.PixelShuffle(2),
             nn.Conv2d(in_channels=channels, out_channels=channels * 4, kernel_size=3, stride=1, padding=1, bias=False),
+            nn.PixelShuffle(2)
+        )
+
+        self.upscale6x = nn.Sequential(
+            nn.Conv2d(in_channels=channels, out_channels=channels * 4, kernel_size=3, stride=1, padding=1, bias=False),
             nn.PixelShuffle(2),
+            nn.Conv2d(in_channels=channels, out_channels=channels * 4, kernel_size=3, stride=1, padding=1, bias=False),
+            nn.PixelShuffle(2),
+            nn.Conv2d(in_channels=channels, out_channels=channels * 4, kernel_size=3, stride=1, padding=1, bias=False),
+            nn.PixelShuffle(2)
         )
 
         self.conv_output = nn.Conv2d(in_channels=channels, out_channels=3, kernel_size=3, stride=1, padding=1,
@@ -85,7 +100,14 @@ class Net(nn.Module):
         residual = out
         out = self.conv_mid(self.residual(out))
         out = torch.add(out, residual)
-        out = self.upscale4x(out)
+
+        if self.scale==2:
+            out = self.upscale2x(out)
+        elif self.scale==4:
+            out = self.upscale4x(out)
+        else:
+            out = self.upscale6x(out)
+
         out = self.conv_output(out)
         out = self.add_mean(out)
         return out

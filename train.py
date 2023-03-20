@@ -18,6 +18,8 @@ parser = argparse.ArgumentParser(description="PyTorch EDSR")
 parser.add_argument("--batchSize", type=int, default=16, help="training batch size")  # default 16
 parser.add_argument("--nEpochs", type=int, default=500, help="number of epochs to train for")
 parser.add_argument("--lr", type=float, default=1e-4, help="Learning Rate. Default=1e-4")
+parser.add_argument("--patch_size", type=int, default=48, help="Patch size of input image. Default=48")
+parser.add_argument("--scale", type=int, default=2, help="Downsampling scale. Default=2")
 parser.add_argument("--step", type=int, default=30,
                     help="Sets the learning rate to the initial LR decayed by momentum every n epochs, Default: n=10")
 parser.add_argument("--cuda", default=True, action="store_true", help="use cuda?")
@@ -33,7 +35,11 @@ save_flag = 0
 epoch_avr_loss = 0
 n_iter = 0
 
-ROOT_PATH = 'dataset/train_set/Unsplash/'
+ROOT_PATH = 'dataset/'
+
+# ImageNet mean and std.
+MEAN = np.array([0.485, 0.456, 0.406])
+STD = np.array([0.229, 0.224, 0.225])
 
 def main():
     global opt, model
@@ -52,25 +58,19 @@ def main():
 
     cudnn.benchmark = True
 
-    ##################################
-    # --------------------------------
-    # FIX THIS
     print("===> Loading datasets")
     train_set = Unsplash(
-                path=ROOT_PATH+'training/'
-            )
+            path=ROOT_PATH,
+            scale=opt.scale,
+            patch_size=opt.patch_size,
+            mean=MEAN,
+            std=STD,
+            train=True
+        )
     train_loader = DataLoader(dataset=train_set, batch_size=opt.batchSize, shuffle=True)
 
-    # val_set = Unsplash(
-                # path=ROOT_PATH+'validation/'
-            # )
-    # val_loader = DataLoader(dataset=val_set, batch_size=opt.batchSize, shuffle=True)
-
-    # --------------------------------
-    ##################################
-
     print("===> Building model")
-    model = Net()
+    model = Net(scale=opt.scale)
     criterion = nn.L1Loss()
 
     print("===> Setting GPU")
@@ -167,7 +167,6 @@ def save_checkpoint(model, epoch):
         print('min_loss model saved')
 
     print("Checkpoint saved to {}".format(model_out_path))
-
 
 if __name__ == "__main__":
     main()
