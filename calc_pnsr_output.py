@@ -22,25 +22,42 @@ opt = parser.parse_args()
 
 print(opt)
 
-
 def is_image_file(filename):
     return any(filename.endswith(extension) for extension in [".png", ".jpg", ".jpeg", ".bmp"])
 
-
-def load_img(filepath):
-    img = Image.open(filepath).convert('YCbCr')
-    y, _, _ = img.split()
-    return y
-
 def calc_psnr(img1, img2):
+    """
+    img1: Generated image (float).
+    img2: Ground truth (hr) image (float).
+    """
     return 10. * torch.log10(1. / torch.mean((img1 - img2) ** 2))
 
+def annotated_image(img, patch_coord):
+    # TODO
+    """
+    Given an `img` return `annotated_img`
+    that contains a bounding box at `patch_coord`.
+    It serves to show the location of
+    choosen patch on the image.
+    """
+    pass
 
-# def calc_psnr(img1, img2):
-#     criterion = nn.MSELoss()
-#     mse = criterion(img1, img2)
-#     return 10 * log10(1 / mse.item())
+def img_to_patches(img, patch_size=48):
+    # TODO
+    """
+    Given a (test) image `img`, split the
+    images into patches of (`patch_size`, patch_size).
+    The, return these patches as input to network.
+    """
+    pass
 
+def stitch_patches(patches):
+    # TODO
+    """
+    Given patches, stich them into
+    a full image.
+    """
+    pass
 
 loader = transforms.Compose([
     transforms.ToTensor()])
@@ -48,41 +65,31 @@ loader = transforms.Compose([
 path = opt.input_LR_path
 path_HR = opt.input_HR_path
 
-crop_size = 256
-scale = 4
 image_nums = len([lists for lists in listdir(path) if is_image_file('{}/{}'.format(path, lists))])
-print(image_nums)
+print("Number of images:", image_nums)
+
 psnr_avg = 0
-psnr_avg_bicubic = 0
 for i in listdir(path):
     if is_image_file(i):
         with torch.no_grad():
             img_name = i.split('.')
             img_num = img_name[0]
 
-            img_original = Image.open('{}{}'.format(path_HR, i))
+            img_original = Image.open('{}{}'.format(path_HR, i)).convert('RGB')
             img_original = img_original.resize((1200, 800))
-            img_original_ybr = img_original.convert('YCbCr')
-            img_original_y, _, _ = img_original_ybr.split()
 
-            img_LR = Image.open('{}{}'.format(path, i))
-
-            if len(np.array(img_LR).shape) != 3:
-                img_LR = img_LR.convert('RGB')
+            img_LR = Image.open('{}{}'.format(path, i)).convert('RGB')
 
             img_to_tensor = ToTensor()
             input = img_to_tensor(img_LR)
             input = Variable(torch.unsqueeze(input, dim=0).float(), requires_grad=False)
 
             model = torch.load(opt.model, map_location='cuda:0')
-            # model = torch.load(opt.model)['model']
-            # model = torch.load(opt.model, map_location='cpu')['model']
             if opt.cuda:
                 model = model.cuda()
                 input = input.cuda()
 
             out = model(input)
-
             out = out.cpu()
 
             im_h = out.data[0].numpy().astype(np.float32)
@@ -93,17 +100,11 @@ for i in listdir(path):
             im_h_pil_ybr = im_h_pil.convert('YCbCr')
             im_h_pil_y, _, _ = im_h_pil_ybr.split()
 
-            # fig = plt.figure()
-            # plt.imshow(im_h.astype(np.uint8))
-            # plt.title('EDSR')
-            # plt.show()
-
             psnr_val = calc_psnr(loader(im_h_pil_y), loader(img_original_y))
             psnr_avg += psnr_val
-            print(psnr_val)
+            print("Test image: {}   ===> PSNR: {}".format(img_num, psnr_val))
 
             im_h_pil.save('{}predicted_images/{}.png'.format(opt.output_path, img_num))
             img_original.save('{}original_images/{}.png'.format(opt.output_path, img_num))
-            # print('output image saved to ', opt.output_path)
 psnr_avg = psnr_avg / image_nums
-print('psnr_avg', psnr_avg)
+print('AVERAGE PSNR:', psnr_avg)

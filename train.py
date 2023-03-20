@@ -38,8 +38,10 @@ n_iter = 0
 ROOT_PATH = 'dataset/'
 
 # ImageNet mean and std.
-MEAN = np.array([0.485, 0.456, 0.406])
-STD = np.array([0.229, 0.224, 0.225])
+# MEAN = np.array([0.485, 0.456, 0.406])
+# STD = np.array([0.229, 0.224, 0.225])
+MEAN = np.array([0.0, 0.0, 0.0])
+STD = np.array([1.0, 1.0, 1.0])
 
 def main():
     global opt, model
