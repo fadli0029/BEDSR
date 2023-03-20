@@ -18,7 +18,7 @@ parser = argparse.ArgumentParser(description="PyTorch EDSR")
 parser.add_argument("--batchSize", type=int, default=16, help="training batch size")  # default 16
 parser.add_argument("--nEpochs", type=int, default=500, help="number of epochs to train for")
 parser.add_argument("--lr", type=float, default=1e-4, help="Learning Rate. Default=1e-4")
-parser.add_argument("--patch_size", type=int, default=48, help="Patch size of input image. Default=48")
+parser.add_argument("--patch_size", type=int, default=50, help="Patch size of input image. Default=50")
 parser.add_argument("--scale", type=int, default=2, help="Downsampling scale. Default=2")
 parser.add_argument("--step", type=int, default=30,
                     help="Sets the learning rate to the initial LR decayed by momentum every n epochs, Default: n=10")

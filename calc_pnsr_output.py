@@ -13,7 +13,8 @@ from dataset import *
 # Training settings
 parser = argparse.ArgumentParser(description='PyTorch Super Res Example')
 parser.add_argument('--input_image', type=str, default='dataset/test_set/lr_x2/1188.jpg', help='input image to use')
-parser.add_argument('--input_LR_path', type=str, default='dataset/test_set/lr_x2/', help='input path to use')
+parser.add_argument('--scale', type=int, default=2, help='downsampling scale of input image')
+parser.add_argument('--input_LR_path', type=str, default='dataset/test_set/lr_x', help='input path to use')
 parser.add_argument('--input_HR_path', type=str, default='dataset/test_set/hr/', help='input path to use')
 parser.add_argument('--model', type=str, default='checkpoints/model_epoch_150.pth', help='model file to use')
 parser.add_argument('--output_path', default='results/', type=str, help='where to save the output image')
@@ -62,7 +63,8 @@ def stitch_patches(patches):
 loader = transforms.Compose([
     transforms.ToTensor()])
 
-path = opt.input_LR_path
+scale = opt.scale
+path = opt.input_LR_path + str(scale) + '/'
 path_HR = opt.input_HR_path
 
 image_nums = len([lists for lists in listdir(path) if is_image_file('{}/{}'.format(path, lists))])
