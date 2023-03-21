@@ -1,5 +1,5 @@
-import common_layers as common
 import torch.nn as nn
+from nets.common_layers import *
 
 class Net(nn.Module):
     def __init__(
@@ -11,7 +11,7 @@ class Net(nn.Module):
             res_scale=0.1,
             rgb_range=255.0,
             n_colors=3,
-            conv=common.default_conv
+            conv=default_conv
         ):
         super(Net, self).__init__()
 
@@ -27,8 +27,8 @@ class Net(nn.Module):
         self.n_colors = n_colors
 
         # Mean shifts layers
-        self.sub_mean = common.MeanShift(self.rgb_range)
-        self.add_mean = common.MeanShift(self.rgb_range, sign=1)
+        self.sub_mean = MeanShift(self.rgb_range)
+        self.add_mean = MeanShift(self.rgb_range, sign=1)
 
         self.act = nn.ReLU(True)
 
@@ -37,7 +37,7 @@ class Net(nn.Module):
 
         # Body module
         m_body = [
-            common.ResBlock(
+            ResBlock(
                 conv=conv, 
                 n_feats=self.n_feats, 
                 kernel_size=self.kernel_size, 

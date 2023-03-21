@@ -39,7 +39,7 @@ save_flag = 0
 epoch_avr_loss = 0
 n_iter = 0
 
-ROOT_PATH = 'dataset/'
+ROOT_PATH = '../dataset/'
 
 def main():
     global opt, model
