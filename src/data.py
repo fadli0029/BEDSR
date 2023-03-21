@@ -46,7 +46,7 @@ class Unsplash(Dataset):
             transforms.RandomVerticalFlip(),
             transforms.RandomRotation(90),
             transforms.ToTensor(),
-            transforms.Normalize(mean=mean, std=std)
+            # transforms.Normalize(mean=mean, std=std)
         ])
 
     def __len__(self):

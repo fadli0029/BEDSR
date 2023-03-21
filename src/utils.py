@@ -1,9 +1,16 @@
 import torch
 import numpy as np
-from PIL import ImageDraw
+from PIL import Image, ImageDraw
 
 def is_image_file(filename):
     return any(filename.endswith(extension) for extension in [".png", ".jpg", ".jpeg", ".bmp"])
+
+def output_to_image(output):
+    output = output[0, :, :, :]
+    output = np.array(output)
+    output = np.transpose(output, (1, 2, 0))
+    image = Image.fromarray(output, mode='RGB')
+    return image
 
 def calc_psnr(lr_img, hr_img):
     """
@@ -24,10 +31,10 @@ def calc_psnr(lr_img, hr_img):
     # Calculate MSE and PSNR
     mse = torch.mean((lr_img - hr_img) ** 2)
     if mse == 0:
-        psnr = np.inf
-    else:
-        max_intensity = torch.max(hr_img)
-        psnr = 20 * torch.log10(max_intensity / torch.sqrt(mse))
+        mse = 1e-8
+
+    max_intensity = torch.max(hr_img)
+    psnr = 20 * torch.log10(max_intensity / torch.sqrt(mse))
 
     return psnr
 

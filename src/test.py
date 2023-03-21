@@ -8,7 +8,6 @@ import torch
 from torchvision import transforms
 from torch.autograd import Variable
 from torchvision.transforms import ToTensor
-from torchvision.transforms.functional import to_pil_image
 
 from PIL import Image
 
@@ -37,6 +36,7 @@ image_nums = len([lists for lists in listdir(path_lr) \
         if utils.is_image_file('{}/{}'.format(path_lr, lists))])
 print("Number of images:", image_nums)
 
+psnrs = {}
 psnr_avg = 0
 for i in listdir(path_lr):
     if utils.is_image_file(i):
@@ -46,11 +46,9 @@ for i in listdir(path_lr):
 
             # Open original images.
             ori = Image.open('{}{}'.format(path_hr, i)).convert('RGB')
-            ori = ori.resize((1200, 800))
             
             # Open low res images.
             lr = Image.open('{}{}'.format(path_lr, i)).convert('RGB')
-            lr = lr.resize((1200//scale, 800//scale))
             
             # Get patches.
             imgs = (lr, ori)
@@ -64,6 +62,7 @@ for i in listdir(path_lr):
             img_to_tensor = ToTensor()
             input = img_to_tensor(lr_patch)
             input = Variable(torch.unsqueeze(input, dim=0).float(), requires_grad=False)
+            # `input` shape: (1, 3, 50, 50)
 
             model = torch.load(opt.model, map_location='cuda:0')
             if opt.cuda:
@@ -74,26 +73,25 @@ for i in listdir(path_lr):
             out = out.cpu()
             
             # Convert output tensor `out` to PIL.Image RGB.
-            gen_patch = out.data[0].numpy().astype(np.float32)
-            gen_patch = gen_patch * 255.
-            gen_patch = np.clip(gen_patch, 0., 255.)
-            gen_patch = gen_patch.transpose(1, 2, 0)
-            gen_patch_img = Image.fromarray(gen_patch.astype(np.uint8))
-            gen_patch_img = gen_patch_img.convert('RGB')
+            gen_patch_img = utils.output_to_image(out)
             
             # Save patches to folder.
             res_path = opt.output_path+img_num
             if not os.path.exists(res_path):
                 os.makedirs(res_path)
-            to_pil_image(gen_patch_img).save('{}{}/gen_patch.jpg'.format(opt.output_path, img_num))
+            gen_patch_img.save('{}{}/gen_patch.jpg'.format(opt.output_path, img_num))
             lr_patch.save('{}{}/lr_patch.jpg'.format(opt.output_path, img_num))
             ori_patch.save('{}{}/hr_patch.jpg'.format(opt.output_path, img_num))
             annot_ori.save('{}{}/annot_ori.jpg'.format(opt.output_path, img_num))
             
             # Compute PSNR.
             psnr_val = utils.calc_psnr(loader(gen_patch_img), loader(ori_patch))
+            psnrs[img_num] = psnr_val
             psnr_avg += psnr_val
             print("Test image: {}   ===> PSNR: {}".format(img_num, psnr_val))
 
 psnr_avg = psnr_avg / image_nums
+psnrs = sorted(psnrs.items(), key=lambda x:x[1], reverse=True)
 print('AVERAGE PSNR:', psnr_avg)
+print('Images with best PSNR:\n')
+print(psnrs[:3])

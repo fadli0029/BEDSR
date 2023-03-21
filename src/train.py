@@ -39,7 +39,7 @@ save_flag = 0
 epoch_avr_loss = 0
 n_iter = 0
 
-ROOT_PATH = '../dataset/'
+ROOT_PATH = 'dataset/'
 
 def main():
     global opt, model
@@ -154,10 +154,10 @@ def save_checkpoint(model, epoch):
     global save_flag
 
     model_folder = "checkpoints/x" + str(opt.scale) + '/'
-    model_out_path = model_folder + "model_epoch_{}.pth".format(epoch)
-    torch.save(model, model_out_path)
     if not os.path.exists(model_folder):
         os.makedirs(model_folder)
+    model_out_path = model_folder + "model_epoch_{}.pth".format(epoch)
+    torch.save(model, model_out_path)
 
     if save_flag is True:
         torch.save(model, '{}epoch_{}_min_batch_loss_{}.pth'.format(model_folder, epoch, min_avr_loss))
