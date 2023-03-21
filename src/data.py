@@ -6,7 +6,15 @@ from torch.utils.data import Dataset
 from torchvision import transforms
 
 class Unsplash(Dataset):
-    def __init__(self, path, scale, patch_size, mean, std, train=True):
+    def __init__(
+            self, 
+            path, 
+            scale, 
+            patch_size, 
+            mean=np.array([0.0, 0.0, 0.0]), 
+            std=np.array([1.0, 1.0, 1.0]), 
+            train=True
+        ):
         self.path = path
         self.scale = scale
         self.patch_size = patch_size

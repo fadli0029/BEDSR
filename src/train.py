@@ -1,15 +1,19 @@
-import argparse
 import os
-import torch
 import random
-import torch.backends.cudnn as cudnn
+import argparse
+
+import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.autograd import Variable
+import torch.backends.cudnn as cudnn
 from torch.utils.data import DataLoader
-from model import Net
+
 from data import Unsplash
-import numpy as np
+
+#############################
+from nets.edsr_v3 import Net
+#############################
 
 torch.cuda.set_device(0)  # use the chosen gpu
 
@@ -37,12 +41,6 @@ n_iter = 0
 
 ROOT_PATH = 'dataset/'
 
-# ImageNet mean and std.
-# MEAN = np.array([0.485, 0.456, 0.406])
-# STD = np.array([0.229, 0.224, 0.225])
-MEAN = np.array([0.0, 0.0, 0.0])
-STD = np.array([1.0, 1.0, 1.0])
-
 def main():
     global opt, model
     opt = parser.parse_args()
@@ -65,9 +63,6 @@ def main():
             path=ROOT_PATH,
             scale=opt.scale,
             patch_size=opt.patch_size,
-            mean=MEAN,
-            std=STD,
-            train=True
         )
     train_loader = DataLoader(dataset=train_set, batch_size=opt.batchSize, shuffle=True)
 
@@ -158,7 +153,7 @@ def save_checkpoint(model, epoch):
     global min_avr_loss
     global save_flag
 
-    model_folder = "checkpoints/"
+    model_folder = "checkpoints/x" + str(opt.scale) + '/'
     model_out_path = model_folder + "model_epoch_{}.pth".format(epoch)
     torch.save(model, model_out_path)
     if not os.path.exists(model_folder):

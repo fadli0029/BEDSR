@@ -1,3 +1,30 @@
+#############################################################################################
+#############################################################################################
+# SUMMARY:
+#   This script create a dataset from the Unsplash dataset for Image Super-Resolution task.
+#
+# DESCRIPTION:
+#   Given a path `path` to High Resolution (HR) images in the Unsplash dataset, 
+#   this script creates K folders containing bilinear downsampled versions of
+#   the HR images based on `scale` passed in the argument.
+#   
+#   For example, if there are 3 downscaling factors: 2, 4, 6, then K=3. The 3 folders
+#   of the following names will be created:
+#   - lr_x2
+#   - lr_x4
+#   - lr_x6
+#   They will be placed in `path/`
+#
+# ARGS:
+#   - scale: Downsampling scales to be used.
+#   - path: Path to the dataset.
+#   - hr: Name of folder in `path` containing HR images.
+#
+# EXAMPLE:
+#   python make_data.py --scale 2 4 6 --path 'dataset/train_set/' --hr 'hr'
+#
+#############################################################################################
+#############################################################################################
 import os
 from PIL import Image
 
