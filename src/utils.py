@@ -34,8 +34,7 @@ def calc_psnr(lr_img, hr_img, max_val=255.0):
     # Check that the images have the same shape
     if lr_img.shape != hr_img.shape:
         raise ValueError("LR and HR images must have the same size.")
-    device = lr_img.get_device()
-    psnr = PeakSignalNoiseRatio(data_range=max_val).to(device)
+    psnr = PeakSignalNoiseRatio(data_range=max_val).to(0)
     return psnr(lr_img, hr_img)
 
 def img_to_patch(imgs, scale=2, patch_size=48):

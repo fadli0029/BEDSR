@@ -66,7 +66,14 @@ def main():
             scale=opt.scale,
             patch_size=opt.patch_size,
         )
+    val_set = Unsplash(
+            path=ROOT_PATH,
+            scale=opt.scale,
+            patch_size=opt.patch_size,
+            val=True
+        )
     train_loader = DataLoader(dataset=train_set, batch_size=opt.batchSize, shuffle=True)
+    val_loader = DataLoader(dataset=val_set, batch_size=opt.batchSize, shuffle=True)
 
     print("===> Building model")
     model = Net(scale=opt.scale)
@@ -94,6 +101,8 @@ def main():
     print("===> Training")
     for epoch in range(opt.start_epoch, opt.nEpochs + 1):
         train(train_loader, optimizer, model, criterion, epoch)
+        print("===> Validating")
+        validate(val_loader, model, criterion)
         save_checkpoint(model, epoch)
 
 
@@ -161,6 +170,29 @@ def train(training_data_loader, optimizer, model, criterion, epoch):
     else:
         save_flag = False
 
+def validate(validation_data_loader, model, criterion):
+    model.eval()
+    total_loss = 0
+    total_psnr = 0
+    num_batches = len(validation_data_loader)
+    
+    with torch.no_grad():
+        for batch in validation_data_loader:
+            input, target = batch[0], batch[1]
+            if opt.cuda:
+                input = input.cuda()
+                target = target.cuda()
+
+            output = model(input)
+            loss = criterion(output, target)
+            psnr_val = utils.calc_psnr(output, target)
+
+            total_loss += loss.item()
+            total_psnr += psnr_val
+        average_loss = total_loss / num_batches
+        average_psnr = total_psnr / num_batches
+    print("Average Validation LOSS: {:.10f}".format(average_loss))
+    print("Average Validation PSNR: {:.10f}".format(average_psnr))
 
 def save_checkpoint(model, epoch):
     global min_avr_loss

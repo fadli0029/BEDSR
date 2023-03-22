@@ -27,16 +27,16 @@ class Unsplash(Dataset):
             patch_size, 
             mean=np.array([0.0, 0.0, 0.0]), 
             std=np.array([1.0, 1.0, 1.0]), 
-            train=True
+            val=False
         ):
         self.path = path
         self.scale = scale
         self.patch_size = patch_size
 
-        if train:
+        if not val:
             self.path += 'train_set/'
         else:
-            self.path += 'test_set/'
+            self.path += 'val_set/'
         
         lr = []
         for file in os.listdir(self.path + 'lr_x' + str(self.scale) + '/'):

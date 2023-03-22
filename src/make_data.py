@@ -36,8 +36,8 @@ def get_hr_images(path):
     for file in os.listdir(path):
         if not file.lower().endswith(('.jpg', '.jpeg', '.png', '.tif', '.tiff')):
             continue
-        hr_images.append(file)
-    hr_images = sorted(hr_images, key=lambda x: int(x.split(".")[0]))
+        hr_images.append(file) 
+        hr_images = sorted(hr_images, key=lambda x: int(x.split(".")[0]))
     return hr_images
 
 def get_lr_images(root_path, hr_images_paths, scale, path_to_save):
@@ -59,12 +59,12 @@ def get_lr_images(root_path, hr_images_paths, scale, path_to_save):
         out_path = os.path.join(path_to_save, os.path.basename(hr_img_path))
         lr_img.save(out_path)
 
-path = 'dataset/test_set/'
+path = 'dataset/val_set/'
 hr_path = path+'hr/'
 lr_path = path+'lr_x'
 
 hr_images_paths = get_hr_images(hr_path)
-scales = [2, 4, 6]
+scales = [2]
 for scale in scales:
     lr_path += (str(scale) + '/')
     get_lr_images(hr_path, hr_images_paths, scale=scale, path_to_save=lr_path)
