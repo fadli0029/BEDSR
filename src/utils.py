@@ -9,10 +9,15 @@ def output_to_image(output):
     output = output[0, :, :, :]
     output = np.array(output)
     output = np.transpose(output, (1, 2, 0))
-    image = Image.fromarray(output, mode='RGB')
+    image = Image.fromarray(output.astype(np.uint8), mode='RGB')
     return image
 
-def calc_psnr(lr_img, hr_img):
+def image_to_tensor(img):
+    img_np = np.array(img)
+    img_tensor = torch.from_numpy(img_np).permute(2, 0, 1).float()
+    return img_tensor
+
+def calc_psnr(lr_img, hr_img, max_val=255.0):
     """
     Calculates the peak signal-to-noise ratio (PSNR) 
     between a low-resolution (LR) image and a high-resolution (HR) image.
@@ -24,19 +29,14 @@ def calc_psnr(lr_img, hr_img):
     Returns:
     - PSNR value as a float.
     """
+    from torchmetrics import PeakSignalNoiseRatio
+
     # Check that the images have the same shape
     if lr_img.shape != hr_img.shape:
         raise ValueError("LR and HR images must have the same size.")
-
-    # Calculate MSE and PSNR
-    mse = torch.mean((lr_img - hr_img) ** 2)
-    if mse == 0:
-        mse = 1e-8
-
-    max_intensity = torch.max(hr_img)
-    psnr = 20 * torch.log10(max_intensity / torch.sqrt(mse))
-
-    return psnr
+    device = lr_img.get_device()
+    psnr = PeakSignalNoiseRatio(data_range=max_val).to(device)
+    return psnr(lr_img, hr_img)
 
 def img_to_patch(imgs, scale=2, patch_size=48):
     """

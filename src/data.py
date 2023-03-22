@@ -5,6 +5,20 @@ from PIL import Image
 from torch.utils.data import Dataset
 from torchvision import transforms
 
+class ImgToTensor(object):
+    """
+    Converts a PIL.Image to tensor.
+    This is to avoid using pytorch
+    to_tensor function or ToTensor 
+    transform as they automatically
+    normalize the input - not what we
+    want.
+    """
+    def __call__(self, pil_image):
+        img_np = np.array(pil_image)
+        img_tensor = torch.from_numpy(img_np).permute(2, 0, 1).float()
+        return img_tensor
+
 class Unsplash(Dataset):
     def __init__(
             self, 
@@ -45,8 +59,7 @@ class Unsplash(Dataset):
             transforms.RandomHorizontalFlip(),
             transforms.RandomVerticalFlip(),
             transforms.RandomRotation(90),
-            transforms.ToTensor(),
-            # transforms.Normalize(mean=mean, std=std)
+            ImgToTensor()
         ])
 
     def __len__(self):

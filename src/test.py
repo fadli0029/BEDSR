@@ -5,9 +5,7 @@ import numpy as np
 from os import listdir
 
 import torch
-from torchvision import transforms
 from torch.autograd import Variable
-from torchvision.transforms import ToTensor
 
 from PIL import Image
 
@@ -24,11 +22,8 @@ opt = parser.parse_args()
 
 print(opt)
 
-loader = transforms.Compose([transforms.ToTensor()])
-
 scale = opt.scale
 patch_size = opt.patch_size
-
 path_hr = opt.input_hr_path
 path_lr = opt.input_lr_path + str(scale) + '/'
 
@@ -54,17 +49,19 @@ for i in listdir(path_lr):
             imgs = (lr, ori)
             lr_patch, ori_patch, patch_coord = utils.img_to_patch(
                 imgs=imgs, scale=scale, patch_size=patch_size)
-            
+
             # Draw bounding box on the original image where patch is taken.
             _, annot_ori = utils.annotated_image((lr, ori), patch_coord)
 
             # Feed patch to neural net.
-            img_to_tensor = ToTensor()
-            input = img_to_tensor(lr_patch)
+            input = torch.from_numpy(np.array(lr_patch)).permute(2, 0, 1).float()
             input = Variable(torch.unsqueeze(input, dim=0).float(), requires_grad=False)
-            # `input` shape: (1, 3, 50, 50)
+            # `input` shape: (1, 3, patch_size, patch_size)
 
+            # Load model
             model = torch.load(opt.model, map_location='cuda:0')
+
+            # Put model to cuda.
             if opt.cuda:
                 model = model.cuda()
                 input = input.cuda()
@@ -85,7 +82,7 @@ for i in listdir(path_lr):
             annot_ori.save('{}{}/annot_ori.jpg'.format(opt.output_path, img_num))
             
             # Compute PSNR.
-            psnr_val = utils.calc_psnr(loader(gen_patch_img), loader(ori_patch))
+            psnr_val = utils.calc_psnr(out[0], utils.image_to_tensor(ori_patch))
             psnrs[img_num] = psnr_val
             psnr_avg += psnr_val
             print("Test image: {}   ===> PSNR: {}".format(img_num, psnr_val))

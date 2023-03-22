@@ -1,4 +1,6 @@
 import os
+import glob
+import utils
 import random
 import argparse
 
@@ -12,7 +14,7 @@ from torch.utils.data import DataLoader
 from data import Unsplash
 
 #############################
-from nets.edsr_v3 import Net
+from nets.edsr import Net
 #############################
 
 torch.cuda.set_device(0)  # use the chosen gpu
@@ -34,7 +36,7 @@ parser.add_argument("--threads", type=int, default=1, help="number of threads fo
 parser.add_argument("--momentum", default=0.9, type=float, help="momentum")
 parser.add_argument("--weight-decay", "--wd", default=0, type=float, help="weight decay, Default: 0")
 
-min_avr_loss = 99999999
+min_avr_loss = min_avr_psnr = 99999999
 save_flag = 0
 epoch_avr_loss = 0
 n_iter = 0
@@ -81,7 +83,6 @@ def main():
         if os.path.isfile(opt.resume):
             print("=> loading checkpoint '{}'".format(opt.resume))
             checkpoint = torch.load(opt.resume)
-            opt.start_epoch = 374
             model.load_state_dict(checkpoint.state_dict())
         else:
             print("=> no checkpoint found at '{}'".format(opt.resume))
@@ -105,11 +106,13 @@ def adjust_learning_rate(optimizer, epoch):
 
 def train(training_data_loader, optimizer, model, criterion, epoch):
     global min_avr_loss
+    global min_avr_psnr
     global save_flag
     global epoch_avr_loss
     global n_iter
 
     avr_loss = 0
+    avr_psnr = 0
 
     lr = adjust_learning_rate(optimizer, epoch - 1)
 
@@ -135,15 +138,25 @@ def train(training_data_loader, optimizer, model, criterion, epoch):
 
         avr_loss += loss.item()
 
+        psnr_val = utils.calc_psnr(out.cuda(), target)
+        avr_psnr += psnr_val
+
         # if iteration % 100 == 0:
-        print("===> Epoch[{}]({}/{}): Loss: {:.10f}".format(epoch, iteration, len(training_data_loader),
-                                                            loss.item()))
+        print("===> Epoch[{}]({}/{}), Loss: {:.10f}, PSNR: {:.10f}".format(
+            epoch, iteration, len(training_data_loader), loss.item(), psnr_val))
+
+    avr_psnr = avr_psnr / len(training_data_loader)
     avr_loss = avr_loss / len(training_data_loader)
 
     epoch_avr_loss = avr_loss
+    epoch_avr_psnr = avr_psnr
     if epoch_avr_loss < min_avr_loss:
         min_avr_loss = epoch_avr_loss
-        print('|||||||||||||||||||||min_batch_loss is {:.10f}|||||||||||||||||||||'.format(min_avr_loss))
+        print('|||||||||||||||||||||min_batch_LOSS is {:.10f}|||||||||||||||||||||'.format(min_avr_loss))
+        save_flag = True
+    if epoch_avr_psnr < min_avr_psnr:
+        min_avr_psnr = epoch_avr_psnr
+        print('|||||||||||||||||||||min_batch_PSNR is {:.10f}|||||||||||||||||||||'.format(min_avr_psnr))
         save_flag = True
     else:
         save_flag = False
@@ -154,6 +167,12 @@ def save_checkpoint(model, epoch):
     global save_flag
 
     model_folder = "checkpoints/x" + str(opt.scale) + '/'
+
+    if epoch % 10 == 0:
+        files_to_delete = glob.glob(os.path.join(model_folder, "*.pth"))
+        list(map(os.remove, files_to_delete))
+        print("Deleted old models to save space.")
+
     if not os.path.exists(model_folder):
         os.makedirs(model_folder)
     model_out_path = model_folder + "model_epoch_{}.pth".format(epoch)
